@@ -1,0 +1,31 @@
+<!-- Copyright 2014 The Chromium Authors. All rights reserved.
+     Use of this source code is governed by a BSD-style license that can be
+     found in the LICENSE file. -->
+<style>
+marquee, i-marquee {
+  border: 1px solid black;
+}
+
+.present {
+  padding: 20px;
+  margin: 20px;
+}
+
+.native {
+  background-color: salmon;
+}
+
+.component {
+  background-color: papayawhip;
+}
+</style>
+
+<script src="marquee.js"></script>
+
+<div class="present native">
+<marquee>Hello, world</marquee>
+</div>
+
+<div class="present component">
+<i-marquee>Hello, world</i-marquee>
+</div>
