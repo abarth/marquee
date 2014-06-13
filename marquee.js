@@ -4,6 +4,15 @@
 
 (function(global) {
 
+var kDefaultScrollAmount = 6;
+var kDefaultScrollDelayMS = 85;
+var kMinimumScrollDelayMS = 60;
+
+var kBehaviorScroll = 'scroll';
+var kBehaviorSlide = 'slide';
+var kBehaviorAlternate = 'alternate';
+var kBehaviorDefault = kBehaviorScroll;
+
 var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
@@ -35,14 +44,34 @@ HTMLMarqueeElementPrototype.attachedCallback = function() {
     });
 };
 
+HTMLMarqueeElementPrototype.parseScrollAmount_  = function(value) {
+    return value === null ? kDefaultScrollAmount : parseInt(value)
+};
+
+HTMLMarqueeElementPrototype.parseScrollDelay_  = function(value) {
+    if (value === null)
+        return kDefaultScrollDelayMS;
+    var specifiedScrollDelay = parseInt(value);
+    if (specifiedScrollDelay < kMinimumScrollDelayMS && !this.hasAttribute('truespeed'))
+        return kDefaultScrollDelayMS;
+    return specifiedScrollDelay;
+};
+
+HTMLMarqueeElementPrototype.animationDuration_ = function(distance) {
+    var scrollAmount = this.parseScrollAmount_(this.getAttribute('scrollamount'));
+    var scrollDelay = this.parseScrollDelay_(this.getAttribute('scrolldelay'));
+    return distance * scrollDelay / scrollAmount;
+};
+
 HTMLMarqueeElementPrototype.start_ = function() {
-    var width = global.getComputedStyle(this).width;
+    var marqueeWidth = parseInt(global.getComputedStyle(this).width);
+    var moverWidth = parseInt(global.getComputedStyle(this.mover_).width);
 
     this.player_ = this.mover_.animate([{
-        transform: 'translateX(' + width + ')',
+        transform: 'translateX(' + marqueeWidth + 'px)',
     }, {
         transform: 'translateX(-100%)',
-    }], 15000)
+    }], this.animationDuration_(marqueeWidth + moverWidth));
 
     var self = this;
     this.player_.addEventListener('finish', function() {
