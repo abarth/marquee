@@ -32,7 +32,7 @@ HTMLMarqueeElementPrototype.createdCallback = function() {
     var content = global.document.createElement('content');
     mover.appendChild(content);
 
-    this.content_ = content;
+    this.loopCount_ = 0;
     this.mover_ = mover;
     this.player_ = null;
 };
@@ -64,17 +64,25 @@ HTMLMarqueeElementPrototype.animationDuration_ = function(distance) {
 };
 
 HTMLMarqueeElementPrototype.start_ = function() {
-    var marqueeWidth = parseInt(global.getComputedStyle(this).width);
+    var loopLimit = parseInt(this.getAttribute('loop'));
+    if (loopLimit != -1 && this.loopCount_ >= loopLimit)
+        return;
+
     var moverWidth = parseInt(global.getComputedStyle(this.mover_).width);
+    var marqueeWidth = parseInt(global.getComputedStyle(this).width);
 
     this.player_ = this.mover_.animate([{
         transform: 'translateX(' + marqueeWidth + 'px)',
     }, {
         transform: 'translateX(-100%)',
-    }], this.animationDuration_(marqueeWidth + moverWidth));
+    }], {
+        duration: this.animationDuration_(marqueeWidth + moverWidth),
+        fill: 'forwards',
+    });
 
     var self = this;
     this.player_.addEventListener('finish', function() {
+        ++self.loopCount_;
         self.start_();
     });
 };
