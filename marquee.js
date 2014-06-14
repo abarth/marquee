@@ -13,6 +13,12 @@ var kBehaviorSlide = 'slide';
 var kBehaviorAlternate = 'alternate';
 var kBehaviorDefault = kBehaviorScroll;
 
+var kDirectionLeft = 'left';
+var kDirectionRight = 'right';
+var kDirectionUp = 'up';
+var kDirectionDown = 'down';
+var kDirectionDefault = kDirectionLeft;
+
 var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
@@ -44,11 +50,13 @@ HTMLMarqueeElementPrototype.attachedCallback = function() {
     });
 };
 
-HTMLMarqueeElementPrototype.parseScrollAmount_  = function(value) {
+HTMLMarqueeElementPrototype.getScrollAmount_  = function() {
+    var value = this.getAttribute('scrollamount');
     return value === null ? kDefaultScrollAmount : parseInt(value)
 };
 
-HTMLMarqueeElementPrototype.parseScrollDelay_  = function(value) {
+HTMLMarqueeElementPrototype.getScrollDelay_  = function() {
+    var value = this.getAttribute('scrolldelay');
     if (value === null)
         return kDefaultScrollDelayMS;
     var specifiedScrollDelay = parseInt(value);
@@ -57,26 +65,71 @@ HTMLMarqueeElementPrototype.parseScrollDelay_  = function(value) {
     return specifiedScrollDelay;
 };
 
+HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
+    var moverStyle = global.getComputedStyle(this.mover_);
+    var marqueeStyle = global.getComputedStyle(this);
+
+    var parameters = {};
+
+    parameters.moverWidth = parseInt(moverStyle.width);
+    parameters.moverHeight = parseInt(moverStyle.height);
+    parameters.marqueeWidth = parseInt(marqueeStyle.width);
+    parameters.marqueeHeight = parseInt(marqueeStyle.height);
+
+    switch (this.getAttribute('direction')) {
+    case kDirectionLeft:
+    default:
+        parameters.transformBegin = 'translateX(' + parameters.marqueeWidth + 'px)';
+        parameters.transformEnd = 'translateX(-100%)';
+        parameters.distance = parameters.marqueeWidth + parameters.moverWidth;
+        break;
+    case kDirectionRight:
+        parameters.transformBegin = 'translateX(-100%)';
+        parameters.transformEnd = 'translateX(' + parameters.marqueeWidth + 'px)';
+        parameters.distance = parameters.marqueeWidth + parameters.moverWidth;
+        break;
+    case kDirectionUp:
+        parameters.transformBegin = 'translateY(' + parameters.marqueeHeight + 'px)';
+        parameters.transformEnd = 'translateY(-100%)';
+        parameters.distance = parameters.marqueeHeight + parameters.moverHeight;
+        break;
+    case kDirectionDown:
+        parameters.transformBegin = 'translateY(-100%)';
+        parameters.transformEnd = 'translateY(' + parameters.marqueeHeight + 'px)';
+        parameters.distance = parameters.marqueeHeight + parameters.moverHeight;
+        break;
+    }
+
+    return parameters
+};
+
 HTMLMarqueeElementPrototype.animationDuration_ = function(distance) {
-    var scrollAmount = this.parseScrollAmount_(this.getAttribute('scrollamount'));
-    var scrollDelay = this.parseScrollDelay_(this.getAttribute('scrolldelay'));
+    var scrollAmount = this.getScrollAmount_();
+    var scrollDelay = this.getScrollDelay_();
     return distance * scrollDelay / scrollAmount;
 };
 
+HTMLMarqueeElementPrototype.didExceedLoopLimit_ = function() {
+    var loopValue = this.getAttribute('loop');
+    if (loopValue == 'infinite')
+        return false;
+    var loopLimit = parseInt(loopValue);
+    if (loopLimit == -1)
+        return false;
+    return this.loopCount_ >= loopLimit;
+};
+
 HTMLMarqueeElementPrototype.start_ = function() {
-    var loopLimit = parseInt(this.getAttribute('loop'));
-    if (loopLimit != -1 && this.loopCount_ >= loopLimit)
+    if (this.didExceedLoopLimit_())
         return;
 
-    var moverWidth = parseInt(global.getComputedStyle(this.mover_).width);
-    var marqueeWidth = parseInt(global.getComputedStyle(this).width);
+    var parameters = this.getAnimationParmeters_();
 
-    this.player_ = this.mover_.animate([{
-        transform: 'translateX(' + marqueeWidth + 'px)',
-    }, {
-        transform: 'translateX(-100%)',
-    }], {
-        duration: this.animationDuration_(marqueeWidth + moverWidth),
+    this.player_ = this.mover_.animate([
+        { transform: parameters.transformBegin },
+        { transform: parameters.transformEnd },
+    ], {
+        duration: this.animationDuration_(parameters.distance),
         fill: 'forwards',
     });
 
