@@ -24,17 +24,13 @@ var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
     var style = global.document.createElement('style');
-    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; }' +
+    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; overflow: hidden }' +
                         ':host([direction="up"]), :host([direction="down"]) { height: 200px; }';
     shadow.appendChild(style);
 
-    var container = global.document.createElement('div');
-    container.setAttribute('style', 'overflow: hidden; height: 100%');
-    shadow.appendChild(container);
-
     var mover = global.document.createElement('div');
     mover.setAttribute('style', 'display: inline-block;');
-    container.appendChild(mover);
+    shadow.appendChild(mover);
 
     var content = global.document.createElement('content');
     mover.appendChild(content);
