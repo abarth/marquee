@@ -24,11 +24,12 @@ var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
     var style = global.document.createElement('style');
-    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; }';
+    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; }' +
+                        ':host([direction="up"]), :host([direction="down"]) { height: 200px; }';
     shadow.appendChild(style);
 
     var container = global.document.createElement('div');
-    container.setAttribute('style', 'overflow: hidden;');
+    container.setAttribute('style', 'overflow: hidden; height: 100%');
     shadow.appendChild(container);
 
     var mover = global.document.createElement('div');
@@ -69,34 +70,37 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var moverStyle = global.getComputedStyle(this.mover_);
     var marqueeStyle = global.getComputedStyle(this);
 
-    var parameters = {};
+    var moverWidth = parseInt(moverStyle.width);
+    var moverHeight = parseInt(moverStyle.height);
+    var marqueeWidth = parseInt(marqueeStyle.width);
+    var marqueeHeight = parseInt(marqueeStyle.height);
 
-    parameters.moverWidth = parseInt(moverStyle.width);
-    parameters.moverHeight = parseInt(moverStyle.height);
-    parameters.marqueeWidth = parseInt(marqueeStyle.width);
-    parameters.marqueeHeight = parseInt(marqueeStyle.height);
+    var totalWidth = marqueeWidth + moverWidth;
+    var totalHeight = marqueeHeight + moverHeight;
+
+    var parameters = {};
 
     switch (this.getAttribute('direction')) {
     case kDirectionLeft:
     default:
-        parameters.transformBegin = 'translateX(' + parameters.marqueeWidth + 'px)';
+        parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
         parameters.transformEnd = 'translateX(-100%)';
-        parameters.distance = parameters.marqueeWidth + parameters.moverWidth;
+        parameters.distance = totalWidth;
         break;
     case kDirectionRight:
         parameters.transformBegin = 'translateX(-100%)';
-        parameters.transformEnd = 'translateX(' + parameters.marqueeWidth + 'px)';
-        parameters.distance = parameters.marqueeWidth + parameters.moverWidth;
+        parameters.transformEnd = 'translateX(' + marqueeWidth + 'px)';
+        parameters.distance = totalWidth;
         break;
     case kDirectionUp:
-        parameters.transformBegin = 'translateY(' + parameters.marqueeHeight + 'px)';
-        parameters.transformEnd = 'translateY(-100%)';
-        parameters.distance = parameters.marqueeHeight + parameters.moverHeight;
+        parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
+        parameters.transformEnd = 'translateY(-' + totalHeight + 'px)';
+        parameters.distance = marqueeHeight + totalHeight;
         break;
     case kDirectionDown:
-        parameters.transformBegin = 'translateY(-100%)';
-        parameters.transformEnd = 'translateY(' + parameters.marqueeHeight + 'px)';
-        parameters.distance = parameters.marqueeHeight + parameters.moverHeight;
+        parameters.transformBegin = 'translateY(-' + totalHeight + 'px)';
+        parameters.transformEnd = 'translateY(' + marqueeHeight + 'px)';
+        parameters.distance = marqueeHeight + totalHeight;
         break;
     }
 
