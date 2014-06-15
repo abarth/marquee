@@ -8,6 +8,8 @@ var kDefaultScrollAmount = 6;
 var kDefaultScrollDelayMS = 85;
 var kMinimumScrollDelayMS = 60;
 
+var kDefaultLoopLimit = -1;
+
 var kBehaviorScroll = 'scroll';
 var kBehaviorSlide = 'slide';
 var kBehaviorAlternate = 'alternate';
@@ -72,6 +74,9 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var totalWidth = marqueeWidth + moverWidth;
     var totalHeight = marqueeHeight + moverHeight;
 
+    var innerWidth = marqueeWidth - moverWidth;
+    var innerHeight = marqueeHeight - moverHeight;
+
     var behavior = this.getAttribute('behavior');
     var direction = this.getAttribute('direction');
 
@@ -94,41 +99,38 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
             break;
         case kDirectionUp:
             parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
-            parameters.transformEnd = 'translateY(-' + moverHeight + 'px)';
+            parameters.transformEnd = 'translateY(-100%)';
             parameters.distance = totalHeight;
             break;
         case kDirectionDown:
-            parameters.transformBegin = 'translateY(-' + moverHeight + 'px)';
+            parameters.transformBegin = 'translateY(-100%)';
             parameters.transformEnd = 'translateY(' + marqueeHeight + 'px)';
             parameters.distance = totalHeight;
             break;
         }
         break;
     case kBehaviorAlternate:
-        var deltaX = marqueeWidth - moverWidth;
-        var deltaY = marqueeHeight - moverHeight;
-
         switch (direction) {
         case kDirectionLeft:
         default:
-            parameters.transformBegin = 'translateX(' + deltaX + 'px)';
+            parameters.transformBegin = 'translateX(' + innerWidth + 'px)';
             parameters.transformEnd = 'translateX(0)';
-            parameters.distance = deltaX;
+            parameters.distance = innerWidth;
             break;
         case kDirectionRight:
             parameters.transformBegin = 'translateX(0)';
-            parameters.transformEnd = 'translateX(' + deltaX + 'px)';
-            parameters.distance = deltaX;
+            parameters.transformEnd = 'translateX(' + innerWidth + 'px)';
+            parameters.distance = innerWidth;
             break;
         case kDirectionUp:
-            parameters.transformBegin = 'translateY(' + deltaY + 'px)';
+            parameters.transformBegin = 'translateY(' + innerHeight + 'px)';
             parameters.transformEnd = 'translateY(0)';
-            parameters.distance = deltaY;
+            parameters.distance = innerHeight;
             break;
         case kDirectionDown:
             parameters.transformBegin = 'translateY(0)';
-            parameters.transformEnd = 'translateY(' + deltaY + 'px)';
-            parameters.distance = deltaY;
+            parameters.transformEnd = 'translateY(' + innerHeight + 'px)';
+            parameters.distance = innerHeight;
             break;
         }
 
@@ -140,7 +142,29 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
 
         break;
     case kBehaviorSlide:
-        // TODO(abarth): Implement me.
+        switch (direction) {
+        case kDirectionLeft:
+        default:
+            parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
+            parameters.transformEnd = 'translateX(0)';
+            parameters.distance = marqueeWidth;
+            break;
+        case kDirectionRight:
+            parameters.transformBegin = 'translateX(-100%)';
+            parameters.transformEnd = 'translateX(' + innerWidth + 'px)';
+            parameters.distance = marqueeWidth;
+            break;
+        case kDirectionUp:
+            parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
+            parameters.transformEnd = 'translateY(0)';
+            parameters.distance = marqueeHeight;
+            break;
+        case kDirectionDown:
+            parameters.transformBegin = 'translateY(-100%)';
+            parameters.transformEnd = 'translateY(' + innerHeight + 'px)';
+            parameters.distance = marqueeHeight;
+            break;
+        }
         break;
     }
 
@@ -153,18 +177,21 @@ HTMLMarqueeElementPrototype.animationDuration_ = function(distance) {
     return distance * scrollDelay / scrollAmount;
 };
 
-HTMLMarqueeElementPrototype.didExceedLoopLimit_ = function() {
-    var loopValue = this.getAttribute('loop');
-    if (loopValue == 'infinite')
-        return false;
-    var loopLimit = parseInt(loopValue);
-    if (loopLimit == -1)
-        return false;
-    return this.loopCount_ >= loopLimit;
+HTMLMarqueeElementPrototype.shouldContinue_ = function() {
+    var value = this.getAttribute('loop');
+    var loop = value === null ? kDefaultLoopLimit : parseInt(value);
+
+    // By default, slide loops only once.
+    if (loop <= 0 && this.getAttribute('behavior') === kBehaviorSlide)
+        loop = 1;
+
+    if (loop <= 0)
+        return true;
+    return this.loopCount_ < loop;
 };
 
 HTMLMarqueeElementPrototype.start_ = function() {
-    if (this.didExceedLoopLimit_())
+    if (!this.shouldContinue_())
         return;
 
     var parameters = this.getAnimationParmeters_();
