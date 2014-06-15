@@ -11,15 +11,11 @@ var kMinimumScrollDelayMS = 60;
 var kBehaviorScroll = 'scroll';
 var kBehaviorSlide = 'slide';
 var kBehaviorAlternate = 'alternate';
-var kBehaviorDefault = kBehaviorScroll;
-
-var kValidBehaviors = [kBehaviorScroll, kBehaviorSlide, kBehaviorAlternate];
 
 var kDirectionLeft = 'left';
 var kDirectionRight = 'right';
 var kDirectionUp = 'up';
 var kDirectionDown = 'down';
-var kDirectionDefault = kDirectionLeft;
 
 var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 
@@ -64,13 +60,6 @@ HTMLMarqueeElementPrototype.getScrollDelay_  = function() {
     return specifiedScrollDelay;
 };
 
-HTMLMarqueeElementPrototype.getBehavior_ = function() {
-    var value = this.getAttribute('behavior');
-    if (kValidBehaviors.indexOf(value) != -1)
-        return value;
-    return kBehaviorDefault;
-};
-
 HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var moverStyle = global.getComputedStyle(this.mover_);
     var marqueeStyle = global.getComputedStyle(this);
@@ -83,31 +72,75 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var totalWidth = marqueeWidth + moverWidth;
     var totalHeight = marqueeHeight + moverHeight;
 
-    var behavior = this.getBehavior_();
+    var behavior = this.getAttribute('behavior');
+    var direction = this.getAttribute('direction');
 
     var parameters = {};
 
-    switch (this.getAttribute('direction')) {
-    case kDirectionLeft:
+    switch (behavior) {
+    case kBehaviorScroll:
     default:
-        parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
-        parameters.transformEnd = 'translateX(-100%)';
-        parameters.distance = totalWidth;
+        switch (direction) {
+        case kDirectionLeft:
+        default:
+            parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
+            parameters.transformEnd = 'translateX(-100%)';
+            parameters.distance = totalWidth;
+            break;
+        case kDirectionRight:
+            parameters.transformBegin = 'translateX(-100%)';
+            parameters.transformEnd = 'translateX(' + marqueeWidth + 'px)';
+            parameters.distance = totalWidth;
+            break;
+        case kDirectionUp:
+            parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
+            parameters.transformEnd = 'translateY(-' + moverHeight + 'px)';
+            parameters.distance = totalHeight;
+            break;
+        case kDirectionDown:
+            parameters.transformBegin = 'translateY(-' + moverHeight + 'px)';
+            parameters.transformEnd = 'translateY(' + marqueeHeight + 'px)';
+            parameters.distance = totalHeight;
+            break;
+        }
         break;
-    case kDirectionRight:
-        parameters.transformBegin = 'translateX(-100%)';
-        parameters.transformEnd = 'translateX(' + marqueeWidth + 'px)';
-        parameters.distance = totalWidth;
+    case kBehaviorAlternate:
+        var deltaX = marqueeWidth - moverWidth;
+        var deltaY = marqueeHeight - moverHeight;
+
+        switch (direction) {
+        case kDirectionLeft:
+        default:
+            parameters.transformBegin = 'translateX(' + deltaX + 'px)';
+            parameters.transformEnd = 'translateX(0)';
+            parameters.distance = deltaX;
+            break;
+        case kDirectionRight:
+            parameters.transformBegin = 'translateX(0)';
+            parameters.transformEnd = 'translateX(' + deltaX + 'px)';
+            parameters.distance = deltaX;
+            break;
+        case kDirectionUp:
+            parameters.transformBegin = 'translateY(' + deltaY + 'px)';
+            parameters.transformEnd = 'translateY(0)';
+            parameters.distance = deltaY;
+            break;
+        case kDirectionDown:
+            parameters.transformBegin = 'translateY(0)';
+            parameters.transformEnd = 'translateY(' + deltaY + 'px)';
+            parameters.distance = deltaY;
+            break;
+        }
+
+        if (this.loopCount_ % 2) {
+            var transform = parameters.transformBegin;
+            parameters.transformBegin = parameters.transformEnd;
+            parameters.transformEnd = transform;
+        }
+
         break;
-    case kDirectionUp:
-        parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
-        parameters.transformEnd = 'translateY(-' + totalHeight + 'px)';
-        parameters.distance = marqueeHeight + totalHeight;
-        break;
-    case kDirectionDown:
-        parameters.transformBegin = 'translateY(-' + totalHeight + 'px)';
-        parameters.transformEnd = 'translateY(' + marqueeHeight + 'px)';
-        parameters.distance = marqueeHeight + totalHeight;
+    case kBehaviorSlide:
+        // TODO(abarth): Implement me.
         break;
     }
 
