@@ -13,6 +13,8 @@ var kBehaviorSlide = 'slide';
 var kBehaviorAlternate = 'alternate';
 var kBehaviorDefault = kBehaviorScroll;
 
+var kValidBehaviors = [kBehaviorScroll, kBehaviorSlide, kBehaviorAlternate];
+
 var kDirectionLeft = 'left';
 var kDirectionRight = 'right';
 var kDirectionUp = 'up';
@@ -62,6 +64,13 @@ HTMLMarqueeElementPrototype.getScrollDelay_  = function() {
     return specifiedScrollDelay;
 };
 
+HTMLMarqueeElementPrototype.getBehavior_ = function() {
+    var value = this.getAttribute('behavior');
+    if (kValidBehaviors.indexOf(value) != -1)
+        return value;
+    return kBehaviorDefault;
+};
+
 HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var moverStyle = global.getComputedStyle(this.mover_);
     var marqueeStyle = global.getComputedStyle(this);
@@ -73,6 +82,8 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
 
     var totalWidth = marqueeWidth + moverWidth;
     var totalHeight = marqueeHeight + moverHeight;
+
+    var behavior = this.getBehavior_();
 
     var parameters = {};
 
