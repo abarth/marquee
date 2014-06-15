@@ -43,23 +43,46 @@ function convertHTMLLengthToCSSLength(value) {
 }
 
 function reflectAttribute(prototype, attributeName, propertyName) {
-  Object.defineProperty(prototype, propertyName, {
-    get: function() {
-      return this.getAttribute(attributeName) || '';
-    },
-    set: function(value) {
-      this.setAttribute(attributeName, value);
-    },
-  });
+    Object.defineProperty(prototype, propertyName, {
+        get: function() {
+            return this.getAttribute(attributeName) || '';
+        },
+        set: function(value) {
+            this.setAttribute(attributeName, value);
+        },
+    });
 }
 
 function reflectBooleanAttribute(prototype, attributeName, propertyName) {
+    Object.defineProperty(prototype, propertyName, {
+        get: function() {
+            return parseInt(this.getAttribute(attributeName));
+        },
+        set: function(value) {
+            this.setAttribute(attributeName, value ? '' : null);
+        },
+    });
+}
+
+function defineInlineEventHandler(prototype, eventName) {
+  var propertyName = 'on' + eventName;
+  // TODO(abarth): We should use symbols here instead.
+  var functionPropertyName = propertyName + 'Function_';
+  var eventHandlerPropertyName = propertyName + 'EventHandler_';
   Object.defineProperty(prototype, propertyName, {
     get: function() {
-      return parseInt(this.getAttribute(attributeName));
+        return this[functionPropertyName];
     },
     set: function(value) {
-      this.setAttribute(attributeName, value ? '' : null);
+        var oldEventHandler = this[eventHandlerPropertyName];
+        // Notice that we wrap |valye| in an anonymous function so that the
+        // author can't call removeEventListener themselves to unregister the
+        // inline event handler.
+        var newEventHandler = function(event) { value(event) };
+        this.removeEventListener(eventName, oldEventHandler);
+        this.addEventListener(eventName, newEventHandler);
+        this[functionPropertyName] = value;
+        this[eventHandlerPropertyName] = newEventHandler;
     },
   });
 }
@@ -74,6 +97,10 @@ reflectAttribute(HTMLMarqueeElementPrototype, 'hspace', 'hspace');
 reflectAttribute(HTMLMarqueeElementPrototype, 'vspace', 'vspace');
 reflectAttribute(HTMLMarqueeElementPrototype, 'width', 'width');
 reflectBooleanAttribute(HTMLMarqueeElementPrototype, 'truespeed', 'trueSpeed');
+
+defineInlineEventHandler(HTMLMarqueeElementPrototype, 'start');
+defineInlineEventHandler(HTMLMarqueeElementPrototype, 'finish');
+defineInlineEventHandler(HTMLMarqueeElementPrototype, 'boune');
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
