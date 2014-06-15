@@ -25,6 +25,27 @@ var kDirectionRight = 'right';
 var kDirectionUp = 'up';
 var kDirectionDown = 'down';
 
+var kPresentationalAttributes = [
+    'bgcolor',
+    'height',
+    'hspace',
+    'vspace',
+    'width',
+];
+
+var pixelLengthRegexp = /^\s*(\d+)\s*$/;
+var precentageLengthRegexp = /^\s*(\d+)\s*%\s*$/;
+
+function convertHTMLLengthToCSSLength(value) {
+    var pixelMatch = value.match(pixelLengthRegexp);
+    if (pixelMatch)
+        return pixelMatch[1] + 'px';
+    var precentageMatch = value.match(precentageLengthRegexp);
+    if (precentageMatch)
+        return precentageMatch[1] + '%';
+    return null;
+}
+
 var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
@@ -46,10 +67,48 @@ HTMLMarqueeElementPrototype.createdCallback = function() {
     this.mover_ = mover;
     this.player_ = null;
     this.continueCallback_ = null;
+
+    for (var i = 0; i < kPresentationalAttributes.length; ++i)
+        this.initializeAttribute_(kPresentationalAttributes[i]);
 };
 
 HTMLMarqueeElementPrototype.attachedCallback = function() {
     this.start();
+};
+
+HTMLMarqueeElementPrototype.detachedCallback = function() {
+    this.stop();
+};
+
+HTMLMarqueeElementPrototype.attributeChangedCallback = function(name, oldValue, newValue) {
+    switch (name) {
+    case 'bgcolor':
+        this.style.backgroundColor = newValue;
+        break;
+    case 'height':
+        this.style.height = convertHTMLLengthToCSSLength(newValue);
+        break;
+    case 'hspace':
+        var margin = convertHTMLLengthToCSSLength(newValue);
+        this.style.marginLeft = margin;
+        this.style.marginRight = margin;
+        break;
+    case 'vspace':
+        var margin = convertHTMLLengthToCSSLength(newValue);
+        this.style.marginTop = margin;
+        this.style.marginBottom = margin;
+        break;
+    case 'width':
+        this.style.width = convertHTMLLengthToCSSLength(newValue);
+        break;
+    }
+};
+
+HTMLMarqueeElementPrototype.initializeAttribute_ = function(name) {
+    var value = this.getAttribute(name);
+    if (value === null)
+        return;
+    this.attributeChangedCallback(name, null, value);
 };
 
 HTMLMarqueeElementPrototype.getScrollAmount_  = function() {
