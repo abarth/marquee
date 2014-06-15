@@ -86,8 +86,7 @@ HTMLMarqueeElementPrototype.createdCallback = function() {
     mover.setAttribute('style', 'display: inline-block;');
     shadow.appendChild(mover);
 
-    var content = global.document.createElement('content');
-    mover.appendChild(content);
+    mover.appendChild(global.document.createElement('content'));
 
     this.loopCount_ = 0;
     this.mover_ = mover;
@@ -129,8 +128,8 @@ HTMLMarqueeElementPrototype.attributeChangedCallback = function(name, oldValue, 
         break;
     case 'behavior':
     case 'direction':
-        this.loopCount_ = 0;
         this.stop();
+        this.loopCount_ = 0;
         this.start();
         break;
     }
@@ -146,7 +145,7 @@ HTMLMarqueeElementPrototype.initializeAttribute_ = function(name) {
 Object.defineProperty(HTMLMarqueeElementPrototype, 'scrollAmount', {
     get: function() {
         var value = this.getAttribute('scrollamount');
-        return value === null ? kDefaultScrollAmount : parseInt(value)
+        return value === null ? kDefaultScrollAmount : parseInt(value);
     },
     set: function(value) {
         this.setAttribute('scrollamount', +value);
@@ -158,10 +157,10 @@ Object.defineProperty(HTMLMarqueeElementPrototype, 'scrollDelay', {
         var value = this.getAttribute('scrolldelay');
         if (value === null)
             return kDefaultScrollDelayMS;
-        var specifiedScrollDelay = parseInt(value);
-        if (specifiedScrollDelay < kMinimumScrollDelayMS && !this.trueSpeed)
+        var scrollDelay = parseInt(value);
+        if (scrollDelay < kMinimumScrollDelayMS && !this.trueSpeed)
             return kDefaultScrollDelayMS;
-        return specifiedScrollDelay;
+        return scrollDelay;
     },
     set: function(value) {
         this.setAttribute('scrolldelay', +value);
@@ -193,15 +192,12 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var innerWidth = marqueeWidth - moverWidth;
     var innerHeight = marqueeHeight - moverHeight;
 
-    var behavior = this.behavior;
-    var direction = this.direction;
-
     var parameters = {};
 
-    switch (behavior) {
+    switch (this.behavior) {
     case kBehaviorScroll:
     default:
-        switch (direction) {
+        switch (this.direction) {
         case kDirectionLeft:
         default:
             parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
@@ -226,7 +222,7 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
         }
         break;
     case kBehaviorAlternate:
-        switch (direction) {
+        switch (this.direction) {
         case kDirectionLeft:
         default:
             parameters.transformBegin = 'translateX(' + innerWidth + 'px)';
@@ -258,7 +254,7 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
 
         break;
     case kBehaviorSlide:
-        switch (direction) {
+        switch (this.direction) {
         case kDirectionLeft:
         default:
             parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
@@ -307,13 +303,12 @@ HTMLMarqueeElementPrototype.continue_ = function() {
     }
 
     var parameters = this.getAnimationParmeters_();
-    var duration = parameters.distance * this.scrollDelay / this.scrollAmount;
 
     var player = this.mover_.animate([
         { transform: parameters.transformBegin },
         { transform: parameters.transformEnd },
     ], {
-        duration: duration,
+        duration: parameters.distance * this.scrollDelay / this.scrollAmount,
         fill: 'forwards',
     });
 
