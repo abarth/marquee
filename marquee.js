@@ -6,10 +6,6 @@
 
 (function(global) {
 
-// According to MDN, we're supposed to dispatch |start|, |finish|, and |bounce|
-// events at various points in the marquee's lifecycle, but Blink doesn't
-// appear to dispatch those events.
-
 var kDefaultScrollAmount = 6;
 var kDefaultScrollDelayMS = 85;
 var kMinimumScrollDelayMS = 60;
@@ -93,7 +89,6 @@ HTMLMarqueeElementPrototype.createdCallback = function() {
     var content = global.document.createElement('content');
     mover.appendChild(content);
 
-    this.running_ = false;
     this.loopCount_ = 0;
     this.mover_ = mover;
     this.player_ = null;
@@ -305,13 +300,16 @@ HTMLMarqueeElementPrototype.shouldContinue_ = function() {
 };
 
 HTMLMarqueeElementPrototype.continue_ = function() {
-    if (!this.shouldContinue_())
+    if (!this.shouldContinue_()) {
+        this.player_ = null;
+        this.dispatchEvent(new Event('finish', false, true));
         return;
+    }
 
     var parameters = this.getAnimationParmeters_();
     var duration = parameters.distance * this.scrollDelay / this.scrollAmount;
 
-    this.player_ = this.mover_.animate([
+    var player = this.mover_.animate([
         { transform: parameters.transformBegin },
         { transform: parameters.transformEnd },
     ], {
@@ -319,38 +317,46 @@ HTMLMarqueeElementPrototype.continue_ = function() {
         fill: 'forwards',
     });
 
-    this.player_.addEventListener('finish', function() {
-        if (!this.running_)
+    this.player_ = player;
+
+    player.addEventListener('finish', function() {
+        if (player != this.player_)
             return;
         ++this.loopCount_;
         this.continue_();
+        if (this.player_ && this.behavior === kBehaviorAlternate)
+            this.dispatchEvent(new Event('bounce', false, true));
     }.bind(this));
 };
 
 HTMLMarqueeElementPrototype.start = function() {
-    if (this.running_)
+    if (this.continueCallback_ || this.player_)
         return;
-    this.running_ = true;;
-
     this.continueCallback_ = global.requestAnimationFrame(function() {
         this.continueCallback_ = null;
         this.continue_();
     }.bind(this));
+    this.dispatchEvent(new Event('start', false, true));
 };
 
 HTMLMarqueeElementPrototype.stop = function() {
-    if (!this.running_)
+    if (!this.continueCallback_ && !this.player_)
         return;
-    this.running_ = false;
 
-    if (this.continueCallback_)
+    if (this.continueCallback_) {
         global.cancelAnimationFrame(this.continueCallback_);
+        this.continueCallback_ = null;
+        return;
+    }
 
     // TODO(abarth): Rather than canceling the animation, we really should just
     // pause the animation, but the pause function is still flagged as
     // experimental.
-    if (this.player_)
-        this.player_.cancel();
+    if (this.player_) {
+        var player = this.player_;
+        this.player_ = null;
+        player.cancel();
+    }
 };
 
 global.document.registerElement('i-marquee', {
