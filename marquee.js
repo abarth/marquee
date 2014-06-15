@@ -46,7 +46,38 @@ function convertHTMLLengthToCSSLength(value) {
     return null;
 }
 
+function reflectAttribute(prototype, attributeName, propertyName) {
+  Object.defineProperty(prototype, propertyName, {
+    get: function() {
+      return this.getAttribute(attributeName) || '';
+    },
+    set: function(value) {
+      this.setAttribute(attributeName, value);
+    },
+  });
+}
+
+function reflectBooleanAttribute(prototype, attributeName, propertyName) {
+  Object.defineProperty(prototype, propertyName, {
+    get: function() {
+      return parseInt(this.getAttribute(attributeName));
+    },
+    set: function(value) {
+      this.setAttribute(attributeName, value ? '' : null);
+    },
+  });
+}
+
 var HTMLMarqueeElementPrototype = Object.create(HTMLElement.prototype);
+
+reflectAttribute(HTMLMarqueeElementPrototype, 'behavior', 'behavior');
+reflectAttribute(HTMLMarqueeElementPrototype, 'bgcolor', 'bgColor');
+reflectAttribute(HTMLMarqueeElementPrototype, 'direction', 'direction');
+reflectAttribute(HTMLMarqueeElementPrototype, 'height', 'height');
+reflectAttribute(HTMLMarqueeElementPrototype, 'hspace', 'hspace');
+reflectAttribute(HTMLMarqueeElementPrototype, 'vspace', 'vspace');
+reflectAttribute(HTMLMarqueeElementPrototype, 'width', 'width');
+reflectBooleanAttribute(HTMLMarqueeElementPrototype, 'truespeed', 'trueSpeed');
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
@@ -101,6 +132,12 @@ HTMLMarqueeElementPrototype.attributeChangedCallback = function(name, oldValue, 
     case 'width':
         this.style.width = convertHTMLLengthToCSSLength(newValue);
         break;
+    case 'behavior':
+    case 'direction':
+        this.loopCount_ = 0;
+        this.stop();
+        this.start();
+        break;
     }
 };
 
@@ -111,20 +148,40 @@ HTMLMarqueeElementPrototype.initializeAttribute_ = function(name) {
     this.attributeChangedCallback(name, null, value);
 };
 
-HTMLMarqueeElementPrototype.getScrollAmount_  = function() {
-    var value = this.getAttribute('scrollamount');
-    return value === null ? kDefaultScrollAmount : parseInt(value)
-};
+Object.defineProperty(HTMLMarqueeElementPrototype, 'scrollAmount', {
+    get: function() {
+        var value = this.getAttribute('scrollamount');
+        return value === null ? kDefaultScrollAmount : parseInt(value)
+    },
+    set: function(value) {
+        this.setAttribute('scrollamount', +value);
+    },
+});
 
-HTMLMarqueeElementPrototype.getScrollDelay_  = function() {
-    var value = this.getAttribute('scrolldelay');
-    if (value === null)
-        return kDefaultScrollDelayMS;
-    var specifiedScrollDelay = parseInt(value);
-    if (specifiedScrollDelay < kMinimumScrollDelayMS && !this.hasAttribute('truespeed'))
-        return kDefaultScrollDelayMS;
-    return specifiedScrollDelay;
-};
+Object.defineProperty(HTMLMarqueeElementPrototype, 'scrollDelay', {
+    get: function() {
+        var value = this.getAttribute('scrolldelay');
+        if (value === null)
+            return kDefaultScrollDelayMS;
+        var specifiedScrollDelay = parseInt(value);
+        if (specifiedScrollDelay < kMinimumScrollDelayMS && !this.trueSpeed)
+            return kDefaultScrollDelayMS;
+        return specifiedScrollDelay;
+    },
+    set: function(value) {
+        this.setAttribute('scrolldelay', +value);
+    },
+});
+
+Object.defineProperty(HTMLMarqueeElementPrototype, 'loop', {
+    get: function() {
+        var value = this.getAttribute('loop');
+        return value === null ? kDefaultLoopLimit : parseInt(value);
+    },
+    set: function(value) {
+        this.setAttribute('loop', +value);
+    },
+});
 
 HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var moverStyle = global.getComputedStyle(this.mover_);
@@ -141,8 +198,8 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     var innerWidth = marqueeWidth - moverWidth;
     var innerHeight = marqueeHeight - moverHeight;
 
-    var behavior = this.getAttribute('behavior');
-    var direction = this.getAttribute('direction');
+    var behavior = this.behavior;
+    var direction = this.direction;
 
     var parameters = {};
 
@@ -235,18 +292,11 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
     return parameters
 };
 
-HTMLMarqueeElementPrototype.animationDuration_ = function(distance) {
-    var scrollAmount = this.getScrollAmount_();
-    var scrollDelay = this.getScrollDelay_();
-    return distance * scrollDelay / scrollAmount;
-};
-
 HTMLMarqueeElementPrototype.shouldContinue_ = function() {
-    var value = this.getAttribute('loop');
-    var loop = value === null ? kDefaultLoopLimit : parseInt(value);
+    var loop = this.loop;
 
     // By default, slide loops only once.
-    if (loop <= 0 && this.getAttribute('behavior') === kBehaviorSlide)
+    if (loop <= 0 && this.behavior === kBehaviorSlide)
         loop = 1;
 
     if (loop <= 0)
@@ -258,14 +308,14 @@ HTMLMarqueeElementPrototype.continue_ = function() {
     if (!this.shouldContinue_())
         return;
 
-    this.mover_.style.transform = null;
     var parameters = this.getAnimationParmeters_();
+    var duration = parameters.distance * this.scrollDelay / this.scrollAmount;
 
     this.player_ = this.mover_.animate([
         { transform: parameters.transformBegin },
         { transform: parameters.transformEnd },
     ], {
-        duration: this.animationDuration_(parameters.distance),
+        duration: duration,
         fill: 'forwards',
     });
 
@@ -296,10 +346,9 @@ HTMLMarqueeElementPrototype.stop = function() {
     if (this.continueCallback_)
         global.cancelAnimationFrame(this.continueCallback_);
 
-    // TODO(abarth): Rather than canceling the animation and programming an
-    // inline transform, we really should just pause the animation. However,
-    // the pause function is still flagged as experimental.
-    this.mover_.style.transform = global.getComputedStyle(this.mover_).transform;
+    // TODO(abarth): Rather than canceling the animation, we really should just
+    // pause the animation, but the pause function is still flagged as
+    // experimental.
     if (this.player_)
         this.player_.cancel();
 };
