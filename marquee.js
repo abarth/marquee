@@ -81,7 +81,7 @@ function defineInlineEventHandler(prototype, eventName) {
         // Notice that we wrap |valye| in an anonymous function so that the
         // author can't call removeEventListener themselves to unregister the
         // inline event handler.
-        var newEventHandler = value ? function(event) { value(event) } : null;
+        var newEventHandler = value ? function() { value.apply(this, arguments) } : null;
         if (newEventHandler)
             this.addEventListener(eventName, newEventHandler);
         this[functionPropertyName] = value;
@@ -103,7 +103,7 @@ reflectBooleanAttribute(HTMLMarqueeElementPrototype, 'truespeed', 'trueSpeed');
 
 defineInlineEventHandler(HTMLMarqueeElementPrototype, 'start');
 defineInlineEventHandler(HTMLMarqueeElementPrototype, 'finish');
-defineInlineEventHandler(HTMLMarqueeElementPrototype, 'boune');
+defineInlineEventHandler(HTMLMarqueeElementPrototype, 'bounce');
 
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
