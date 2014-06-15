@@ -29,8 +29,8 @@ var kPresentationalAttributes = [
     'width',
 ];
 
-var pixelLengthRegexp = /^\s*(\d+)\s*$/;
-var precentageLengthRegexp = /^\s*(\d+)\s*%\s*$/;
+var pixelLengthRegexp = /^\s*([\d.]+)\s*$/;
+var precentageLengthRegexp = /^\s*([\d.]+)\s*%\s*$/;
 
 function convertHTMLLengthToCSSLength(value) {
     var pixelMatch = value.match(pixelLengthRegexp);
