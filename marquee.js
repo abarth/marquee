@@ -72,13 +72,13 @@ function defineInlineEventHandler(prototype, eventName) {
   Object.defineProperty(prototype, propertyName, {
     get: function() {
         var func = this[functionPropertyName];
-        return func ? func : null;
+        return func || null;
     },
     set: function(value) {
         var oldEventHandler = this[eventHandlerPropertyName];
         if (oldEventHandler)
             this.removeEventListener(eventName, oldEventHandler);
-        // Notice that we wrap |valye| in an anonymous function so that the
+        // Notice that we wrap |value| in an anonymous function so that the
         // author can't call removeEventListener themselves to unregister the
         // inline event handler.
         var newEventHandler = value ? function() { value.apply(this, arguments) } : null;
