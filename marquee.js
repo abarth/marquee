@@ -30,15 +30,15 @@ var kPresentationalAttributes = [
 ];
 
 var pixelLengthRegexp = /^\s*([\d.]+)\s*$/;
-var precentageLengthRegexp = /^\s*([\d.]+)\s*%\s*$/;
+var percentageLengthRegexp = /^\s*([\d.]+)\s*%\s*$/;
 
 function convertHTMLLengthToCSSLength(value) {
     var pixelMatch = value.match(pixelLengthRegexp);
     if (pixelMatch)
         return pixelMatch[1] + 'px';
-    var precentageMatch = value.match(precentageLengthRegexp);
-    if (precentageMatch)
-        return precentageMatch[1] + '%';
+    var percentageMatch = value.match(percentageLengthRegexp);
+    if (percentageMatch)
+        return percentageMatch[1] + '%';
     return null;
 }
 
