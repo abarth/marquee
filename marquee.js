@@ -108,12 +108,11 @@ defineInlineEventHandler(HTMLMarqueeElementPrototype, 'bounce');
 HTMLMarqueeElementPrototype.createdCallback = function() {
     var shadow = this.createShadowRoot();
     var style = global.document.createElement('style');
-    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; overflow: hidden }' +
+    style.textContent = ':host { display: inline-block; width: -webkit-fill-available; overflow: hidden; text-align: initial; }' +
                         ':host([direction="up"]), :host([direction="down"]) { height: 200px; }';
     shadow.appendChild(style);
 
     var mover = global.document.createElement('div');
-    mover.setAttribute('style', 'display: inline-block;');
     shadow.appendChild(mover);
 
     mover.appendChild(global.document.createElement('content'));
@@ -207,20 +206,30 @@ Object.defineProperty(HTMLMarqueeElementPrototype, 'loop', {
     },
 });
 
-HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
+HTMLMarqueeElementPrototype.getGetMetrics_ = function() {
+    this.mover_.style.width = '-webkit-max-content';
+
     var moverStyle = global.getComputedStyle(this.mover_);
     var marqueeStyle = global.getComputedStyle(this);
 
-    var moverWidth = parseInt(moverStyle.width);
-    var moverHeight = parseInt(moverStyle.height);
-    var marqueeWidth = parseInt(marqueeStyle.width);
-    var marqueeHeight = parseInt(marqueeStyle.height);
+    var metrics = {};
+    metrics.contentWidth = parseInt(moverStyle.width);
+    metrics.contentHeight = parseInt(moverStyle.height);
+    metrics.marqueeWidth = parseInt(marqueeStyle.width);
+    metrics.marqueeHeight = parseInt(marqueeStyle.height);
 
-    var totalWidth = marqueeWidth + moverWidth;
-    var totalHeight = marqueeHeight + moverHeight;
+    this.mover_.style.width = '';
+    return metrics;
+};
 
-    var innerWidth = marqueeWidth - moverWidth;
-    var innerHeight = marqueeHeight - moverHeight;
+HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
+    var metrics = this.getGetMetrics_();
+
+    var totalWidth = metrics.marqueeWidth + metrics.contentWidth;
+    var totalHeight = metrics.marqueeHeight + metrics.contentHeight;
+
+    var innerWidth = metrics.marqueeWidth - metrics.contentWidth;
+    var innerHeight = metrics.marqueeHeight - metrics.contentHeight;
 
     var parameters = {};
 
@@ -230,23 +239,23 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
         switch (this.direction) {
         case kDirectionLeft:
         default:
-            parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
+            parameters.transformBegin = 'translateX(' + metrics.marqueeWidth + 'px)';
             parameters.transformEnd = 'translateX(-100%)';
             parameters.distance = totalWidth;
             break;
         case kDirectionRight:
-            parameters.transformBegin = 'translateX(-100%)';
-            parameters.transformEnd = 'translateX(' + marqueeWidth + 'px)';
+            parameters.transformBegin = 'translateX(-' + metrics.contentWidth + 'px)';
+            parameters.transformEnd = 'translateX(' + metrics.marqueeWidth + 'px)';
             parameters.distance = totalWidth;
             break;
         case kDirectionUp:
-            parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
-            parameters.transformEnd = 'translateY(-100%)';
+            parameters.transformBegin = 'translateY(' + metrics.marqueeHeight + 'px)';
+            parameters.transformEnd = 'translateY(-' + metrics.contentHeight + 'px)';
             parameters.distance = totalHeight;
             break;
         case kDirectionDown:
-            parameters.transformBegin = 'translateY(-100%)';
-            parameters.transformEnd = 'translateY(' + marqueeHeight + 'px)';
+            parameters.transformBegin = 'translateY(-' + metrics.contentHeight + 'px)';
+            parameters.transformEnd = 'translateY(' + metrics.marqueeHeight + 'px)';
             parameters.distance = totalHeight;
             break;
         }
@@ -287,24 +296,24 @@ HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
         switch (this.direction) {
         case kDirectionLeft:
         default:
-            parameters.transformBegin = 'translateX(' + marqueeWidth + 'px)';
+            parameters.transformBegin = 'translateX(' + metrics.marqueeWidth + 'px)';
             parameters.transformEnd = 'translateX(0)';
-            parameters.distance = marqueeWidth;
+            parameters.distance = metrics.marqueeWidth;
             break;
         case kDirectionRight:
-            parameters.transformBegin = 'translateX(-100%)';
+            parameters.transformBegin = 'translateX(-' + metrics.contentWidth + 'px)';
             parameters.transformEnd = 'translateX(' + innerWidth + 'px)';
-            parameters.distance = marqueeWidth;
+            parameters.distance = metrics.marqueeWidth;
             break;
         case kDirectionUp:
-            parameters.transformBegin = 'translateY(' + marqueeHeight + 'px)';
+            parameters.transformBegin = 'translateY(' + metrics.marqueeHeight + 'px)';
             parameters.transformEnd = 'translateY(0)';
-            parameters.distance = marqueeHeight;
+            parameters.distance = metrics.marqueeHeight;
             break;
         case kDirectionDown:
-            parameters.transformBegin = 'translateY(-100%)';
+            parameters.transformBegin = 'translateY(-' + metrics.contentHeight + 'px)';
             parameters.transformEnd = 'translateY(' + innerHeight + 'px)';
-            parameters.distance = marqueeHeight;
+            parameters.distance = metrics.marqueeHeight;
             break;
         }
         break;
