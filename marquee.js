@@ -222,7 +222,7 @@ HTMLMarqueeElementPrototype.getGetMetrics_ = function() {
     return metrics;
 };
 
-HTMLMarqueeElementPrototype.getAnimationParmeters_ = function() {
+HTMLMarqueeElementPrototype.getAnimationParameters_ = function() {
     var metrics = this.getGetMetrics_();
 
     var totalWidth = metrics.marqueeWidth + metrics.contentWidth;
@@ -341,7 +341,7 @@ HTMLMarqueeElementPrototype.continue_ = function() {
         return;
     }
 
-    var parameters = this.getAnimationParmeters_();
+    var parameters = this.getAnimationParameters_();
 
     var player = this.mover_.animate([
         { transform: parameters.transformBegin },
