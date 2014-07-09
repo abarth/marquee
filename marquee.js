@@ -56,7 +56,7 @@ function reflectAttribute(prototype, attributeName, propertyName) {
 function reflectBooleanAttribute(prototype, attributeName, propertyName) {
     Object.defineProperty(prototype, propertyName, {
         get: function() {
-            return parseInt(this.getAttribute(attributeName));
+            return !!this.getAttribute(attributeName);
         },
         set: function(value) {
             this.setAttribute(attributeName, value ? '' : null);
